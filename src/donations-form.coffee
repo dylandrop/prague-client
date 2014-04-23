@@ -189,7 +189,10 @@ donationsForm.init = (jQuery, opts) ->
       validateFieldset($(this).parent())
   bindButtons()
 
-  generateConversionRates = ->
+  updateCustomerCountry = (country) ->
+    $("input[name='customer.country']").val(country)
+
+  generateConversionRates = (donationsForm, options) ->
     $.ajax
       type: 'get',
       url: 'https://freegeoip.net/json/',
@@ -197,16 +200,18 @@ donationsForm.init = (jQuery, opts) ->
       success: (data) ->
         country = data['country_code']
         currency = donationsForm.getCurrencyFromCountryCode(country)
-        $("input[name='customer.country']").val(country)
         symbol = donationsForm.getSymbolFromCurrency(currency)
         updateCurrencyFields(symbol, currency)
+        updateCustomerCountry(country)
+
         unless config['seedcurrency'] == currency
           updateWithRates = (rates) ->
             rates = if config['rates'] then config['rates'] else rates
             rate = donationsForm.conversionRt(config['seedcurrency'], currency, rates)
             updateCurrencyFields(symbol, currency, rate)
-          if config['rates']? or $("#donations-config").attr('defaults')?
-            updateWithRates(JSON.parse($("#donations-config").attr('defaults')).rates)
+
+          if config['rates']? or options['donations_config']?
+            updateWithRates(JSON.parse(options['donations_config'].rates))
           else
             $("#donation-script").on 'donations:defaultsloaded', (event, dat) ->
               updateWithRates(dat['rates'])
@@ -216,6 +221,7 @@ donationsForm.init = (jQuery, opts) ->
   updateDonationHeader = ->
     text = $(".donation-btn-active .donation-amt").text()
     $(".donation-header-amt").text(if !!text then text else "0")
+
   updateCurrencyFields = (symbol, currency, conversionRate) ->
     currency = if currency? then currency else config['currency']
     $("input[name='customer.charges_attributes[0].currency']").val(currency)
@@ -224,11 +230,13 @@ donationsForm.init = (jQuery, opts) ->
     updateDonationHeader()
     bindButtons()
     bindSelect(currency)
+
   if config['currency']?
     symbol = donationsForm.getSymbolFromCurrency(config['currency'])
     updateCurrencyFields(symbol, config['currency'])
   else
-    generateConversionRates()
+    generateConversionRates(donationsForm, 
+    {'donations_config':$("#donations-config").attr('defaults')})
 
   $("#donation-form").show()
 
