@@ -189,21 +189,7 @@ donationsForm.init = (jQuery, opts) ->
       validateFieldset($(this).parent())
   bindButtons()
 
-  updateDonationHeader = ->
-    text = $(".donation-btn-active .donation-amt").text()
-    $(".donation-header-amt").text(if !!text then text else "0")
-  updateCurrencyFields = (symbol, currency, conversionRate) ->
-    currency = if currency? then currency else config['currency']
-    $("input[name='customer.charges_attributes[0].currency']").val(currency)
-    $(".donation-currency").html(symbol)
-    $("#input-set-first").html(donationsForm.donationsButtons(config['seedamount'], config['seedvalues'], config['select'], symbol, conversionRate))
-    updateDonationHeader()
-    bindButtons()
-    bindSelect(currency)
-  if config['currency']?
-    symbol = donationsForm.getSymbolFromCurrency(config['currency'])
-    updateCurrencyFields(symbol, config['currency'])
-  else
+  generateConversionRates = ->
     $.ajax
       type: 'get',
       url: 'https://freegeoip.net/json/',
@@ -226,6 +212,23 @@ donationsForm.init = (jQuery, opts) ->
               updateWithRates(dat['rates'])
         else
           updateCurrencyFields(symbol, currency)
+
+  updateDonationHeader = ->
+    text = $(".donation-btn-active .donation-amt").text()
+    $(".donation-header-amt").text(if !!text then text else "0")
+  updateCurrencyFields = (symbol, currency, conversionRate) ->
+    currency = if currency? then currency else config['currency']
+    $("input[name='customer.charges_attributes[0].currency']").val(currency)
+    $(".donation-currency").html(symbol)
+    $("#input-set-first").html(donationsForm.donationsButtons(config['seedamount'], config['seedvalues'], config['select'], symbol, conversionRate))
+    updateDonationHeader()
+    bindButtons()
+    bindSelect(currency)
+  if config['currency']?
+    symbol = donationsForm.getSymbolFromCurrency(config['currency'])
+    updateCurrencyFields(symbol, config['currency'])
+  else
+    generateConversionRates()
 
   $("#donation-form").show()
 
