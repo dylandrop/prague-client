@@ -192,6 +192,15 @@ donationsForm.init = (jQuery, opts) ->
   updateCustomerCountry = (country) ->
     $("input[name='customer.country']").val(country)
 
+  updateWithRates = (rates, config, currency) ->
+    rates = if config['rates'] then config['rates'] else rates
+    rate = donationsForm.conversionRt(config['seedcurrency'], currency, rates)
+    updateCurrencyFields(symbol, currency, rate)
+
+  updateRatesOnLoadedDonations = ->
+    $("#donation-script").on 'donations:defaultsloaded', (event, dat) ->
+      updateWithRates(dat['rates'])
+
   generateConversionRates = (donationsForm, options) ->
     $.ajax
       type: 'get',
@@ -205,16 +214,10 @@ donationsForm.init = (jQuery, opts) ->
         updateCustomerCountry(country)
 
         unless config['seedcurrency'] == currency
-          updateWithRates = (rates) ->
-            rates = if config['rates'] then config['rates'] else rates
-            rate = donationsForm.conversionRt(config['seedcurrency'], currency, rates)
-            updateCurrencyFields(symbol, currency, rate)
-
           if config['rates']? or options['donations_config']?
             updateWithRates(JSON.parse(options['donations_config'].rates))
           else
-            $("#donation-script").on 'donations:defaultsloaded', (event, dat) ->
-              updateWithRates(dat['rates'])
+            updateRatesOnLoadedDonations()
         else
           updateCurrencyFields(symbol, currency)
 
