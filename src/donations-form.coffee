@@ -1,5 +1,34 @@
+class ConversionRates 
+
+  generate: (donationsForm, options) ->
+    $.ajax
+      type: 'get',
+      url: 'https://freegeoip.net/json/',
+      dataType: 'jsonp',
+      success: (data) ->
+        country = data['country_code']
+        currency = donationsForm.getCurrencyFromCountryCode(country)
+        symbol = donationsForm.getSymbolFromCurrency(currency)
+        donationsForm.updateCurrencyFields(symbol, currency)
+        donationsForm.updateCustomerCountry(country)
+
+        unless config['seedcurrency'] == currency
+          updateWithRates = (rates) ->
+          rates = if config['rates'] then config['rates'] else rates
+          rate = donationsForm.conversionRt(config['seedcurrency'], currency, rates)
+          donationsForm.updateCurrencyFields(symbol, currency, rate)
+
+          if config['rates']? or options['donations_config']?
+            donationsForm.updateWithRates(JSON.parse(options['donations_config'].rates))
+          else
+            $("#donation-script").on 'donations:defaultsloaded', (event, dat) ->
+              updateWithRates(dat['rates'])
+        else
+          donationsForm.updateCurrencyFields(symbol, currency)
+
 `var donationsForm = {};`
 `var $;`
+`var conversionRates = new ConversionRates()`
 
 donationsForm.init = (jQuery, opts) ->
   `$ = jQuery;`
@@ -192,34 +221,8 @@ donationsForm.init = (jQuery, opts) ->
   updateCustomerCountry = (country) ->
     $("input[name='customer.country']").val(country)
 
-  updateWithRates = (rates, config, currency) ->
-    rates = if config['rates'] then config['rates'] else rates
-    rate = donationsForm.conversionRt(config['seedcurrency'], currency, rates)
-    updateCurrencyFields(symbol, currency, rate)
 
-  updateRatesOnLoadedDonations = ->
-    $("#donation-script").on 'donations:defaultsloaded', (event, dat) ->
-      updateWithRates(dat['rates'])
 
-  generateConversionRates = (donationsForm, options) ->
-    $.ajax
-      type: 'get',
-      url: 'https://freegeoip.net/json/',
-      dataType: 'jsonp',
-      success: (data) ->
-        country = data['country_code']
-        currency = donationsForm.getCurrencyFromCountryCode(country)
-        symbol = donationsForm.getSymbolFromCurrency(currency)
-        updateCurrencyFields(symbol, currency)
-        updateCustomerCountry(country)
-
-        unless config['seedcurrency'] == currency
-          if config['rates']? or options['donations_config']?
-            updateWithRates(JSON.parse(options['donations_config'].rates))
-          else
-            updateRatesOnLoadedDonations()
-        else
-          updateCurrencyFields(symbol, currency)
 
   updateDonationHeader = ->
     text = $(".donation-btn-active .donation-amt").text()
@@ -238,7 +241,7 @@ donationsForm.init = (jQuery, opts) ->
     symbol = donationsForm.getSymbolFromCurrency(config['currency'])
     updateCurrencyFields(symbol, config['currency'])
   else
-    generateConversionRates(donationsForm, 
+    conversionRates.generate(donationsForm, 
     {'donations_config':$("#donations-config").attr('defaults')})
 
   $("#donation-form").show()
