@@ -89,7 +89,7 @@ gulp.task('serve', function(event) {
     port: 1987,
     livereload: true
   });
-  watch({glob: sources.overwatch})
+  watch(sources.overwatch)
     .pipe(connect.reload());
 });
 
@@ -108,10 +108,10 @@ gulp.task('scss:compile', function(event) {
 });
 /** Coffee:compile; compiles coffeescript **/
 gulp.task('coffee:compile', function(event) {
-    var loaderFilter = filter('donations-loader.coffee'),
-        donationsFormFilter = filter('*form*.coffee'),
-        casperFilter = filter('test/*feature.coffee'),
-        jasmineFilter = filter('test/*spec.coffee');
+    const loaderFilter = filter('donations-loader.coffee', {restore: true});
+    const donationsFormFilter = filter('*form*.coffee', {restore: true});
+    const casperFilter = filter('test/*feature.coffee', {restore: true});
+    const jasmineFilter = filter('test/*spec.coffee', {restore: true});
     return gulp.src(sources.coffee, {base: './src/coffee/'})
         .pipe(plumber())
         .pipe(loaderFilter)
@@ -119,7 +119,7 @@ gulp.task('coffee:compile', function(event) {
         .pipe(replace(/praguepathtoserver/g, settings.pathToServer))
         .pipe(coffee())
         .pipe(gulp.dest(destinations.js))
-        .pipe(loaderFilter.restore())
+        .pipe(loaderFilter.restore)
         .pipe(donationsFormFilter)
         .pipe(concat('jquery.donations.coffee'))
         .pipe(replace(/__praguepathtoserver__/g, settings.pathToServer))
@@ -128,24 +128,22 @@ gulp.task('coffee:compile', function(event) {
         .pipe(replace(/__praguepusherpublickey__/g, settings.pusherPublicKey))
         .pipe(replace(/__honeybadgerpublickey__/g, settings.honeybadgerPublicKey))
         .pipe(replace(/__environment__/g, env))
-        .pipe(coffee({
-            bare: true
-        }))
+        .pipe(coffee({ bare: true }))
         .pipe(gulp.dest(destinations.js))
-        .pipe(donationsFormFilter.restore())
+        .pipe(donationsFormFilter.restore)
         .pipe(casperFilter)
         .pipe(concat('test/casper.coffee'))
         .pipe(coffee())
         .pipe(gulp.dest(destinations.js))
-        .pipe(casperFilter.restore())
+        .pipe(casperFilter.restore)
         .pipe(jasmineFilter)
         .pipe(coffee())
         .pipe(gulp.dest(destinations.js))
-        .pipe(jasmineFilter.restore());
+        .pipe(jasmineFilter.restore);
 });
 
 gulp.task('config:watch', function(event) {
-    watch({glob: sources.config }, ['config:push']);
+    watch(sources.config, ['config:push']);
 });
 /** Config:push; pushes over widget config **/
 gulp.task('config:push', function(event) {
@@ -167,17 +165,17 @@ gulp.task('jade:compile', function(event) {
 
 /** Scss:watch; watch for scss source changes **/
 gulp.task('scss:watch', function(event) {
-    watch({glob: sources.scss }, ['scss:compile']);
+    watch(sources.scss, ['scss:compile']);
 });
 
 /** Coffee:watch; watch for coffeescript source changes and compile as necessary **/
 gulp.task('coffee:watch', function(event) {
-    watch({glob: sources.coffee}, ['coffee:compile']);
+    watch(sources.coffee, ['coffee:compile']);
 });
 
 /** Jade:watch; watch for jade source changes and compile as necessary **/
 gulp.task('jade:watch', function(event) {
-    watch({glob: sources.jade }, ['jade:compile']);
+    watch(sources.jade, ['jade:compile']);
 });
 
 /** Watch; watch for source changes and run necessary compilation during development **/
@@ -206,9 +204,9 @@ gulp.task('image-assets:load', function(event) {
 
 /** Build:script; concats all vendor scripts and donations scripts into one and then minifies to dist folder. **/
 gulp.task('dist:script', function(event) {
-  var coffeeFilter = filter('*form*.coffee'),
-    loaderFilter = filter('*loader.coffee'),
-    jsFilter = filter('!**/*.coffee');
+  var coffeeFilter = filter('*form*.coffee', {restore: true}),
+    loaderFilter = filter('*loader.coffee', {restore: true}),
+    jsFilter = filter('!**/*.coffee', {restore: true});
   return gulp.src(sources.coffee.concat(sources.asset_scripts.dev).concat(['src/js/vendor/**/*.js']))
     .pipe(plumber())
     .pipe(coffeeFilter)
@@ -223,7 +221,7 @@ gulp.task('dist:script', function(event) {
     .pipe(coffee({
       bare:true
     }))
-    .pipe(coffeeFilter.restore())
+    .pipe(coffeeFilter.restore)
     .pipe(jsFilter)
     .pipe(concat('jquery.donations.js'))
     .pipe(replace(/__rand__/g, Math.random()))
@@ -236,7 +234,7 @@ gulp.task('dist:script', function(event) {
     .pipe(gulp.dest(destinations.build))
     .pipe(uglify())
     .pipe(gulp.dest(destinations.build))
-    .pipe(jsFilter.restore())
+    .pipe(jsFilter.restore)
     .pipe(loaderFilter)
     .pipe(concat('jquery.donations.loader.js'))
     .pipe(replace(/__rand__/g, Math.random()))
@@ -268,15 +266,15 @@ gulp.task('dist:style', function(event) {
 /** Applies revisions for cache busting **/
 gulp.task('dist:version', function(event) {
   return gulp.src(['build/jquery.donations.js', 'build/jquery.donations.css', 'build/jquery.donations.loader.js'])
-    .pipe(revall({prefix: (settings.cdnUrl + '/')}))
+    .pipe(revall.revision({prefix: (settings.cdnUrl + '/')}))
     .pipe(replace(/praguecloudfronturl/g, settings.cdnUrl))
     .pipe(gulp.dest(destinations.dist))
 });
 
 /** Deploy:S3; gzips sources and deploys to S3.**/
 gulp.task('deploy:s3', function(event) {
-  var loaderFilter = filter('jquery.donations.loader*');
-  var notLoaderFilter = filter('!jquery.donations.loader*');
+  var loaderFilter = filter('jquery.donations.loader*', {restore: true});
+  var notLoaderFilter = filter('!jquery.donations.loader*', {restore: true});
 
   return gulp.src(sources.deployment)
     .pipe(debug({verbose: true}))
@@ -284,10 +282,10 @@ gulp.task('deploy:s3', function(event) {
     .pipe(debug({verbose: true}))
     .pipe(loaderFilter)
     .pipe(s3(aws, options.s3noCache))
-    .pipe(loaderFilter.restore())
+    .pipe(loaderFilter.restore)
     .pipe(notLoaderFilter)
     .pipe(s3(aws, options.s3))
-    .pipe(notLoaderFilter.restore())
+    .pipe(notLoaderFilter.restore)
     .pipe(debug({verbose: true}))
     .pipe(cloudfront(aws))
 });
